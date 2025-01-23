@@ -1,0 +1,61 @@
+class ram_trans;
+  rand bit[63:0]data_in;
+  rand bit[11:0] rd_address;
+  rand bit[11:0] wr_address;
+  rand bit read;
+  rand bit write;
+  logic [63:0] data_out;
+  static int trans_id;
+  //tracing no of transactions
+  static int no_of_read_trans;
+   static int no_of_write_trans;
+  static int no_of_RW_trans;
+  constraint VALID_ADDR{wr_address!=rd_address;}
+  constraint VALID_CTRL{{read,write}!=2'b00;}
+  constraint VALID_DATA{data_in inside {[1:4294]};}
+  virtual function void display(input string message);
+    $display("++++++++++++++++++++++++++++++");
+    $display("%s",message);
+    $display("\t Transaction No: %d ",trans_id);
+    $display("\t Read TRANSACTION N0: %d",no_of_read_trans);
+    $display("\t write TRANSACTION N0: %d",no_of_write_trans);
+    $display("\t Read-Write TRANSACTION N0: %d",no_of_RW_trans);
+    $display("\t read=%d,write=%d",read,write);
+    $display("\tRead_address=%d,Write_address=%d",rd_address,wr_address);
+    $display("\tData_in=%d",data_in);
+    $display("\t Data_out=%d",data_out);
+     $display("++++++++++++++++++++++++++++++");
+  endfunction
+  function void post_randomize();
+    if(this.read==1 && this.write==0)
+      no_of_read_trans++;
+    if(this.read==0 && this.write==1)
+      no_of_write_trans++;
+    if(this.read==1 && this.write==1)
+      no_of_RW_trans++;
+    this.display("\t RANDOMIZED DATA");
+  endfunction
+  virtual function bit compare(input ram_trans rcv,output string message);
+    compare='0;
+    begin
+      if(this.rd_address != rcv.rd_address)
+        begin
+          $display($time);
+          message="-----------ADDRESS MISMATCH-----------";
+          return(0);
+          
+          
+        end
+      if(this.data_out != rcv.data_out)
+        begin
+          $display($time);
+          message="-----------DATA MISMATCH-----------";
+          return(0);
+        end
+      begin
+        message = "SUCCESSFULLY COMPARED";
+        return(1);
+      end
+    end
+  endfunction
+endclass
