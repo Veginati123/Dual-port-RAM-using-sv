@@ -1,0 +1,32 @@
+class ram_wr_drv;
+  virtual ram_if.WR_DRV wr_drv_if;
+  ram_trans data2duv;
+  mailbox #(ram_trans) gen2wr;
+  function new(virtual ram_if.WR_DRV wr_drv_if,mailbox #(ram_trans) gen2wr);
+    this.wr_drv_if=wr_drv_if;
+    this.gen2wr=gen2wr;
+  endfunction
+  virtual task drive();
+    @(wr_drv_if.wr_drv_cb);
+    wr_drv_if.wr_drv_cb.wr_address <= data2duv.wr_address;
+    wr_drv_if.wr_drv_cb.write <= data2duv.write;
+     wr_drv_if.wr_drv_cb.data_in <= data2duv.data_in;
+    //wait for 1clk cycle after applying all the inputs
+    //if read is high, 1 cycle will be required to read the data
+    //for processing time wait for 2 clk cycles with respect to clocking block
+    repeat(2)@ (wr_drv_if.wr_drv_cb);
+    //disable the write signal
+    wr_drv_if.wr_drv_cb.write <= '0;
+    
+  endtask
+  virtual task start();
+    fork
+      forever
+        begin
+          gen2wr.get(data2duv);
+          drive();
+        end
+    join_none
+    
+  endtask
+endclass
