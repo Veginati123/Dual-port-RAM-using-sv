@@ -1,0 +1,59 @@
+class ram_sb;
+  
+           event DONE;
+  
+    		int data_verified = 0;
+int rm_data_count = 0;
+int mon_data_count = 0;
+  ram_trans rm_data;
+  ram_trans rcvd_data;
+  mailbox #(ram_trans) rm_in_ch;//ref model to sb
+  mailbox #(ram_trans) mon_in_ch;//mon to sb
+  function new(mailbox #(ram_trans) rm_in_ch,mailbox #(ram_trans) mon_in_ch);
+    this.rm_in_ch=rm_in_ch;
+    this.mon_in_ch=mon_in_ch;
+  endfunction
+  task start();
+    fork
+      while(1)
+        begin
+          rm_in_ch.get(rm_data);
+          rm_data_count++;
+          mon_in_ch.get(rcvd_data);
+          mon_data_count++;
+          check(rcvd_data);
+        end
+    join_none
+  endtask
+  virtual task check(ram_trans rc_data);
+    string diff;
+    if(rc_data.read==1)
+      begin
+        if(rc_data.data_out==0)
+          $display("SB:Random data not written");
+        else if(rc_data.read==1 && rc_data.data_out!=0)
+          begin
+            if(!rm_data.compare(rc_data,diff))
+              begin
+                rc_data.display("SB:Received data");
+                rm_data.display("SB:Data sent to DUT ");
+                $display("%s\n%m\n\n",diff);
+                $finish;
+              end
+            else
+              $display("%s\n%m\n\n",diff);
+              end
+        data_verified++;
+        if(data_verified >=(number of_transactions-rc_data.no_of_write_trans))
+          begin
+          ->DONE;
+          end
+      end
+  endtask
+  function void report();
+    $display("----------------SCOREBOARD--------------");
+    $display("%0d Read data generated ,%0d Recevied Data Recieved,%0d Read Data Verification\n",rm_data_count,mon_data_count,data_verified);
+    $display("-------------------------------");
+  endfunction
+endclass
+    
