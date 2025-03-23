@@ -1,15 +1,28 @@
-module  dpram (clk,data_in,data_out,wr_address,rd_address,read,write);
-  input clk,data_in,wr_address,rd_address,read,write;
-  output logic data_out;
-  logic[11:0]dpr[5:0];
-  always@(posedge clk)
-    begin
-      if(write)
-        dpr[wr_address]<= data_in;
-      else if(read)
-        data_out <= dpr[rd_address];
-     // else
-       // dpr[wr_address] <=4096'b0; 
-        
+module dpram (
+    input              clk,
+    input              read,
+    input              write,
+    input  [11:0]      wr_address,   // 12 bits for 4096 locations (2^12 = 4096)
+    input  [11:0]      rd_address,
+    input  [63:0]      data_in,
+    output reg [63:0]  data_out
+);
+
+    // Memory declaration: 4096 locations, each 64 bits wide
+    reg [63:0] mem [0:4095];
+
+    always @(posedge clk) begin
+        if (write) begin
+            // Write operation
+            mem[wr_address] <= data_in;
+        end 
+        else if (read) begin
+            // Read operation
+            data_out <= mem[rd_address];
+        end
+        else begin
+            // No read or write operation
+            data_out <= 64'bz;  // High impedance state to indicate no read operation
+        end
     end
 endmodule
